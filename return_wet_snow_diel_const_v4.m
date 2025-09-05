@@ -1,0 +1,49 @@
+function [epsr,epsi] = return_wet_snow_diel_const_v4(freqGHz,density_gpcm3, mv_percent, modeln )
+%This function computes the real and imiginary parts of wet snow diel
+%constant with a chosen model specified in modeln (1-10)
+
+%Input Variables:
+%freqGHz: frequency in GHz
+%density_gpcm3: Dry Snow Density (g/cm^3)
+%mv: volumetric water content (0<mv<6%)
+%Output Products:
+%eps:complex dielectric constant
+% Contact Coder for the updates and Qestions: Alamgir Hossan, JPL, 4/1/2025
+% alamgir.hossan@jpl.nasa.gov
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+density_gpcm3 = double(density_gpcm3);
+mv_percent = double(mv_percent);
+density_kgpm3 = density_gpcm3*1000;
+lwc = mv_percent/100;
+
+switch modeln
+
+     case 1
+        eps_eff = wetsnow_permittivity_Matzler(freqGHz, density_kgpm3, lwc);
+    case 2
+        eps_eff= wetsnow_permittivity_tinga73(freqGHz, density_kgpm3, lwc);
+    case 3
+        eps_eff = wetsnow_permittivity_debyelike_hallikainen86(freqGHz,density_gpcm3, mv_percent);
+    case 4
+        eps_eff = wetsnow_permittivity_hallikainen86(freqGHz,density_gpcm3, mv_percent);
+    case 5
+        eps_eff = wetsnow_permittivity_hallikainen86_ulaby14(freqGHz,density_gpcm3, mv_percent);   
+    case 6
+        eps_eff = wetsnow_permittivity_colbeck80(freqGHz, density_kgpm3, lwc);
+    case 7
+        eps_eff = wetsnow_permittivity_power_law(freqGHz, density_kgpm3, lwc,1/2); % Birchak 1974
+    case 8
+        eps_eff = wetsnow_permittivity_power_law(freqGHz, density_kgpm3, lwc,1/2.5); % Sihvola (1985)
+    case 9
+        eps_eff = wetsnow_permittivity_power_law(freqGHz, density_kgpm3, lwc,1/3); %Looyenga (1965)
+    case 10
+        eps_eff = wetsnow_permittivity_tiuri_1984(freqGHz,density_gpcm3, lwc);
+    
+end
+
+epsr = real(eps_eff);
+epsi = imag(eps_eff);
+
+
+end

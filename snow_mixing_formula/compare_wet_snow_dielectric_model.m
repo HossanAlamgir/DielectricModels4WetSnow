@@ -1,0 +1,335 @@
+clear
+fig_dir = 'Z:\IceSheets\Documentation\Manuscripts_n_abstracts\wet_snow_diel_models\figs\';
+freqGHz = 1.4; % GHz
+temperature = 273.15; %K
+density = 400; % kg/cm^3
+lwc = linspace(0.001,0.06,100); % volume fraction 0-1
+
+
+eps_eff=nan(length(lwc),10);
+
+
+for j = 1:length(lwc)
+
+    eps_eff(j,1) = wetsnow_permittivity_hallikainen86_ulaby14(freqGHz,density/1000, lwc(j)*100);
+    eps_eff(j,2) = wetsnow_permittivity_hallikainen86(freqGHz,density/1000, lwc(j)*100);
+    eps_eff(j,3) = wetsnow_permittivity_debyelike_hallikainen86(freqGHz,density/1000, lwc(j)*100);
+    eps_eff(j,4) = wetsnow_permittivity_memls(freqGHz, density, lwc(j));
+    eps_eff(j,5) = wetsnow_permittivity_wiesmann99(freqGHz, density, lwc(j));
+    eps_eff(j,6) = wetsnow_permittivity_tinga73(freqGHz, density, lwc(j));
+    eps_eff(j,7) = wetsnow_permittivity_colbeck80_caseI(freqGHz, density, lwc(j));
+    eps_eff(j,8) = wetsnow_permittivity_colbeck80_caseIII(freqGHz, density, lwc(j));
+    eps_eff(j,9) = wetsnow_permittivity_tiuri_1984(freqGHz,density/1000, lwc(j));
+    eps_eff(j,10) = wetsnow_permittivity_colbeck80_caseII(freqGHz, density, lwc(j));
+    eps_eff(j,11) = wetsnow_permittivity_MG(freqGHz, density, lwc(j));
+    eps_eff(j,12) = wetsnow_permittivity_three_component_polder_van_santen(freqGHz,density, lwc(j));
+    eps_eff(j,13) = wetsnow_permittivity_power_law(freqGHz, density, lwc(j),1/2);
+    eps_eff(j,14) = wetsnow_permittivity_power_law(freqGHz, density, lwc(j),1/3);
+    eps_eff(j,15) = wetsnow_permittivity_power_law(freqGHz, density, lwc(j),0);
+end
+
+%%
+models = [{'Ulaby14-Hallikainen86'},{'Hallikainen86'},{'Hallikainen86(Debye-like)'},{'MEMLS3'},{'Wiesmann99'},{'Tinga73'},...
+    {'Colbeck80 (pendular)'},{'Colbeck80 (low porosity)'},...
+    {'Tiuri84'},{'Colbeck80 (funicular)'},{'Maxwell-Garnett'},{'Three-phase Polder-Van Santen'},{'Birchak'},{'Looyenga'},{'Lichtenecker'},{'Power Law'},];
+addpath 'Z:\IceSheets\matlab\SMOS'
+[col]=distinc_colors();
+selected_models = [1:4,6:9,13:14];
+lw=2;
+figure(Position=[5.8866e+03 -31.8000 1.4116e+03 653.6000])
+t=tiledlayout(1,2,"TileSpacing","compact","Padding","compact");
+nexttile
+hold on
+for c=selected_models%1:size(eps_eff,2)
+    plot(lwc*100,real(eps_eff(:,c)),'.-',Color=col(c),LineWidth=lw);
+end
+grid
+ylabel('Real Part of Dielectric Conatant','FontSize',14,FontWeight='bold')
+set(gca,'FontSize',14,FontWeight='bold')
+
+nexttile
+hold on
+for c=selected_models%1:size(eps_eff,2)
+    plot(lwc*100,imag(eps_eff(:,c)),'.-',Color=col(c),LineWidth=lw,DisplayName=char(models(c)));
+end
+grid
+ylabel('Imiginary Part of Dielectric Conatant','FontSize',14,FontWeight='bold')
+set(gca,'FontSize',14,FontWeight='bold')
+
+xlabel(t,'Volumetric Water Content (%)','FontSize',14,FontWeight='bold')
+set(gca,'FontSize',14,FontWeight='bold')
+
+lgd = legend('location','northwest','FontSize',14,FontWeight='bold');
+legend('boxoff')
+
+filename = sprintf('%swetsnow_diel.png',fig_dir);
+exportgraphics(gcf, filename, 'Resolution', 300);
+
+%% Plot penetration depth as fn of LWC
+
+deltap = penetration(freqGHz,eps_eff);
+
+models = [{'Ulaby14-Hallikainen86'},{'Hallikainen86'},{'Hallikainen86(Debye-like)'},{'MEMLS3'},{'Wiesmann99'},{'Tinga73'},...
+    {'Colbeck80 (pendular)'},{'Colbeck80 (funicular)'},{'Colbeck80 (low porosity)'},{'Three-phase Polder-Van Santen'}];
+addpath 'Z:\IceSheets\matlab\SMOS'
+[col]=distinc_colors();
+lw=2;
+figure(Position=[4.1882e+03 -256.2000 1.1408e+03 793.2000]);hold on;
+for p=[1:7,9]
+    plot(lwc*100,abs(deltap(:,p)),'.-',color=col(p),LineWidth=2,DisplayName=sprintf('%s  ',char(models(p))));
+end
+
+h = legend();
+title(h,sprintf('Wet Snow Dielectric Models'))
+
+
+grid;ylim([0 100])
+title(sprintf('L-band Penetration Depth (m) at Snow Density = %d kg/m^3',density),'fontweight','bold')
+xlabel('Volumetric Water Content (%)','fontweight','bold')
+ylabel('Penetration Depth (m)','fontweight','bold')
+set(gca,"FontWeight","bold",FontSize=14)
+
+
+filename = sprintf('%spenetration_1.png',fig_dir);
+exportgraphics(gcf, filename, 'Resolution', 300);
+
+
+%%
+
+clearvars -except fig_dir
+
+snowr = load('Z:\IceSheets\EM_Model_SnoWR_Algorithm\LUT\LUT_combined_v7.mat');
+memls = load('Z:\IceSheets\EM_Model_SnoWR_Algorithm\LUT\LUT_combined_memls_v7.mat');
+addpath 'Z:\IceSheets\matlab\SMOS'
+fig_dir ='Z:\IceSheets\EM_Model_SnoWR_Algorithm\figs\LWA_dependencies\';
+% tbv = nan(length(T0_dry4),length(Ps),length(d_dry2),length(eps3r),length(mv));
+
+
+%%
+models = [{'Ulaby14-Hallikainen86'},{'Hallikainen86'},{'Hallikainen86(Debye-like)'},{'MEMLS3'},{'Wiesmann99'},{'Tinga73'},...
+    {'Colbeck80 (pendular)'},{'Colbeck80 (funicular)'},{'Colbeck80 (low porosity)'},{'Three-phase Polder-Van Santen'}];
+par = snowr.par_range_LUT;
+tbv1 = snowr.tbv;
+tbv2 = memls.tbv2(:,:,:,:,:,1);
+[col]=distinc_colors();
+figure(Position=[5779 -158.6000 1.5908e+03 834]);
+t=tiledlayout(1,3);
+
+rho = 0.5; %g/cm^3
+% d2 = 100;
+eps3r = 30;
+
+
+for d2 = 100:100:300
+
+    nt=nexttile(t)
+    hold on
+
+    count=1;
+    lh=[];
+    tbv =[];
+    for model = 1:10
+        [~,i] = min(abs(par.Ps - rho));
+        [~,j] = min(abs(par.d_dry2 - d2));
+        [~,k ]= min(abs(par.eps3r - eps3r));
+
+        tbv11 = squeeze(tbv1(i,j,k,:,model));
+        tbv21 = squeeze(tbv2(i,j,k,:,model));
+        tbv = [tbv,tbv11];
+
+        h=plot(par.mv, tbv11, '-', 'LineWidth', 2, 'Color', col(count),   DisplayName=char(models(count)));
+        plot(par.mv, tbv21, '--', 'LineWidth', 2, 'Color', col(count),   DisplayName=char(models(count)));
+        lh=[lh,h];
+
+        count = count +1;
+
+    end
+    %
+
+    grid;grid minor
+    ax1 = gca; % current axes
+    ax2 = axes('Position',ax1.Position,...
+        'XAxisLocation','top',...
+        'YAxisLocation','left', ...
+        'Color','none','XLim',ax1.XLim,'YLim',ax1.YLim) ;
+    xlabel(t, 'Volume Fraction of Melt [%]','FontSize',14,FontWeight='bold')
+    ylabel(t,'Brightness Temperature (TB) [K]','FontSize',14,FontWeight='bold')
+    xticks(ax2,par.mv(1:5:31))
+    xticklabels(ax2,par.mv(1:5:31)*d2/10)
+    ax2.TickDir = 'out';
+    ax1.TickDir = 'out';
+    % ax1.TickDir = 'none';
+    yticklabels(ax2,{})
+    % xticks(ax1,lon_tr(4:8:100))
+    % xticklabels(ax1,round(dist(4:8:100)))
+
+    set(ax1,"FontWeight","bold")
+    set(ax2,"FontWeight","bold")
+    set(ax1,'FontSize',14)
+    set(ax2,'FontSize',14)
+    % xlim(ax1,[-51,-36])
+    % ax1.YAxis(2).Color = 'r';
+    % ax2.YAxis(1).Color = 'k';
+    if d2==200
+        xlabel(ax2, 'Liquid Water Amount (mm)')
+    end
+    text(1,275,sprintf('twet = %d cm',d2),'FontSize',14,FontWeight='bold')
+end
+% lgd = legend(lh,'location','eastoutside','FontSize',14,FontWeight='bold');
+% legend('boxoff')
+
+filename = sprintf('%sTBV_with_diel_models.png',fig_dir);
+exportgraphics(gcf, filename, 'Resolution', 300);
+
+%%
+clearvars -except fig_dir
+aws_filename1='combined_corrected_promice_data_n_model_output_promice_tsurf1.mat';
+if ~exist('aws','var')
+    aws1=load(['Z:\IceSheets\Weather Stations Data\Greenland\PROMICE\DATA\AWS\V10\promice_n_model_data\V3\combined_multyyr\' ...
+        aws_filename1]);
+end
+if ~exist('GEMB_compare_to_PROMICE_AWS','var')
+    fpath_GEMBgrid2 = ['Z:/IceSheets/data/GEMB-AH/daily_LWC_Nicole/promice_forced/'];
+    fnameo2 = 'GEMB_TotalmmLWCMelt_Greenland_promice_daily_2010-2025_revA.mat';
+    gemb2=load([fpath_GEMBgrid2, fnameo2]);
+end
+input_drive = 'Z:';
+smap_dir = [input_drive, '/IceSheets/EM_Model_SnoWR_Algorithm/SnoWR_Results/Greenland-AH/validation_with_PROMICE/smap_at_aws/diff_diel_models/'];
+
+%%
+addpath 'Z:\IceSheets\matlab\'
+models = [{'Ulaby14-Hallikainen86'},{'Hallikainen86'},{'Hallikainen86(Debye-like)'},{'MEMLS3'},{'Wiesmann99'},{'Tinga73'},...
+    {'Colbeck80 (pendular)'},{'Colbeck80 (funicular)'},{'Colbeck80 (low porosity)'},{'Three-phase Polder-Van Santen'}];
+stations=aws1.stations;
+stations_sel = [3,4,12,19,32,33];
+[col]=distinc_colors();
+figure('Position', [5.9902e+03 -385 1.7048e+03 1150]);
+
+t=tiledlayout(3,2,'TileSpacing','compact');
+yl = [0 100];
+yr1 = 2023;
+
+for stn = [1,4,2,5,3,6]%[4:6]%stations_sel
+
+    aws_data1 = aws1.data_awsnm{stn};
+    aws_dnum = aws_data1(:,1);
+    aws_mwa_hourly = sum(aws_data1(:,49:91),2)*1000;
+    [aws_days,aws_mwa_daily]=compute_daily_mean(aws_dnum,aws_mwa_hourly);
+    nexttile();hold on;
+    clear smap_datac
+    for model = [1:7,9]
+
+        smap = load([smap_dir,'smap_lwa_',num2str(model),'_v1_1.mat']);
+        smap_data = smap.data_smap_ret{stations_sel(stn)};
+        smap_datac(model,:) = smap.data_smap_retc{stations_sel(stn)};
+        smap_dnum = smap_data(:,1);
+        % tbv = smap_data(:,2);
+        % tbh = smap_data(:,3);
+        % tbv_ref = smap_data(:,4);
+        % tbv_thresh = smap_data(:,5);
+        mv_smap = smap_data(:,6); % Melt volume fraction, Mv [%]
+        mv_smap(mv_smap>10) = NaN;
+        dwet_smap = smap_data(:,7); % thickness of the wet layer in cm
+        mwa_smap = (mv_smap/100).*dwet_smap*10; % *dwet_smap in cm, threfore mwa_smap in mm
+        % meltF_dy = abs(tbv-tbv_ref)> tbv_thresh;
+        [smap_days,mwa_smap_daily]=compute_daily_mean(smap_dnum,mwa_smap);
+
+        plot(smap_days, mwa_smap_daily, '-', 'LineWidth', 2, 'MarkerSize', 16, 'Color', col(model), 'DisplayName', char(models(model)));
+
+        % plot(geus_days,mwa_geus_daily,'m.-','LineWidth',1,'MarkerSize',6)
+        % hold
+
+    end
+
+    plot(gemb2.gemb.dnum,gemb2.gemb.LWC(:,stn),':','LineWidth',3,  'Color', col(15), 'DisplayName', 'GEMB');
+    plot(aws_days,aws_mwa_daily,'--','LineWidth',3, 'Color', col(27), 'DisplayName', "SAMIMI");
+    xlim([datenum(yr1,6,1),datenum(yr1,10,1)]);
+    grid
+    datetick('x','dd/mm/yy','keepticks');
+    title(sprintf(char(stations{(stn)})))
+
+    % ylim(yl)
+    ax = gca;
+    ax.XAxis.FontWeight = 'bold'; % Make X-axis tick labels bold
+    ax.YAxis.FontWeight = 'bold'; % Make Y-axis tick labels bold
+
+
+end
+
+
+ylabel(t,'Liquid Water Amount [mm]','FontSize',14,'FontWeight','bold')
+nexttile(2)
+legend('location','Northeast','FontSize',12,'FontWeight','bold')
+legend('boxoff')
+
+% filename = sprintf('%sLWA_with_diel_models_%d_1.png',fig_dir,yr1);
+% exportgraphics(gcf, filename, 'Resolution', 300);
+
+%%
+addpath 'Z:\IceSheets\matlab\'
+models = [{'Ulaby14-Hallikainen86'},{'Hallikainen86'},{'Hallikainen86(Debye-like)'},{'MEMLS3'},{'Wiesmann99'},{'Tinga73'},...
+    {'Colbeck80 (pendular)'},{'Colbeck80 (funicular)'},{'Colbeck80 (low porosity)'},{'Three-phase Polder-Van Santen'}];
+stations=aws1.stations;
+stations_sel = [3,4,12,19,32,33];
+[col]=distinc_colors();
+figure('Position', [5.9902e+03 -385 1.7048e+03 1150]);
+
+t=tiledlayout(3,2,'TileSpacing','compact');
+yl = [0 100];
+yr1 = 2023;
+model =2;
+for stn = [1,4,2,5,3,6]%[4:6]%stations_sel
+
+    aws_data = aws1.data_awsnm{stn};
+    gemb_data = [gemb2.gemb.dnum',gemb2.gemb.LWC(:,stn)];
+    smap = load([smap_dir,'smap_lwa_',num2str(model),'_v1_1.mat']);
+    smap_data = smap.data_smap_ret{stations_sel(stn)};
+
+    temporal_window = 3; % in hour
+    [aws_data1,deltaT] = collocate_time_series_revA(smap_data(:,1),aws_data,aws_data(:,1),temporal_window);
+    temporal_window = 12; % in hour
+    [gemb_data1,deltaT] = collocate_time_series_revA(smap_data(:,1),gemb_data,gemb_data(:,1),temporal_window);
+    aws_dnum = aws_data1(:,1);
+    aws_mwa_hourly = sum(aws_data1(:,49:91),2)*1000;
+    % [aws_days,aws_mwa_daily]=compute_daily_mean(aws_dnum,aws_mwa_hourly);
+
+    nexttile();
+    hold on
+
+    for model = [1:7,9]
+        smap = load([smap_dir,'smap_lwa_',num2str(model),'_v1_1.mat']);
+        smap_data = smap.data_smap_ret{stations_sel(stn)};
+        smap_datac(model,:) = smap.data_smap_retc{stations_sel(stn)};
+        smap_dnum = smap_data(:,1);
+        tbv = smap_data(:,2);
+        tbh = smap_data(:,3);
+        tbv_ref = smap_data(:,4);
+        TBV_std = smap_data(:,5);
+        tbv_thresh = tbv_ref + min(12,10*TBV_std);
+        delta_tbv = tbv - tbv_thresh(1);
+
+        mv_smap = smap_data(:,6); % Melt volume fraction, Mv [%]
+        mv_smap(mv_smap>10) = NaN;
+        dwet_smap = smap_data(:,7); % thickness of the wet layer in cm
+        mwa_smap = (mv_smap/100).*dwet_smap*10; % *dwet_smap in cm, threfore mwa_smap in mm
+        id = delta_tbv>=0;
+        if model == 1
+            % plot(delta_tbv(id),aws_mwa_hourly(id),'k+',MarkerSize=10);
+            plot(delta_tbv(id),gemb_data1(id,2),'k+',MarkerSize=10);
+        end
+        plot(delta_tbv(id),mwa_smap (id),'.', 'MarkerSize', 16, 'Color', col(model), 'DisplayName', char(models(model)));
+
+    end
+    grid
+    axis([0 120 0 80])
+    title(sprintf(char(stations{(stn)})))
+    set(gca,'FontWeight','bold','FontSize',14)
+
+end
+
+    ylabel(t,'Liquid Water Amount [mm]','FontSize',14,'FontWeight','bold')
+    xlabel(t,'\DeltaTBV [K]','FontSize',14,'FontWeight','bold')
+    nexttile(2)
+    legend('location','Northeast','FontSize',12,'FontWeight','bold')
+    legend('boxoff')
+
